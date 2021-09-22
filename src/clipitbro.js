@@ -106,7 +106,10 @@ class Clipitbro {
       const data = await this.client.get('statuses/lookup', { id })
       if (!data.length) return error('I can\'t find any tweets that match the id.')
 
-      const video_url = await this.select_video(data[0].extended_entities.media[0])
+      const media = data[0].extended_entities?.media[0]
+      if (!media) return error('There is no media in the specified tweet.')
+
+      const video_url = await this.select_video(media)
       if (!video_url) return error('There is no video in the specified tweet.')
 
       try {
