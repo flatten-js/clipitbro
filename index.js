@@ -4,6 +4,7 @@ const { program } = require('commander')
 
 const package = require('./package.json')
 const Clipitbro = require('./src/clipitbro.js')
+const logger = require('./src/logger.js')
 
 const clipitbro = new Clipitbro(process.env)
 
@@ -11,6 +12,10 @@ program.version(package.version)
 
 program
   .argument('<url>')
-  .action(async url => await clipitbro.download(url).catch(console.error))
+  .action(url => {
+    clipitbro.download(url)
+    .then(msg => logger.info(msg))
+    .catch(e => logger.error(e))
+  })
 
 program.parse(process.argv)

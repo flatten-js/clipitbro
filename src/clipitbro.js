@@ -4,6 +4,8 @@ const axios = require('axios')
 const Twitter = require('twitter')
 const { prompt } = require('enquirer')
 
+const logger = require('./logger.js')
+
 class Clipitbro {
   constructor(env) {
     this.client = this._certification(env)
@@ -77,28 +79,42 @@ class Clipitbro {
 
     return new Promise((resolve, reject) => {
       ws.on('error', e => reject(e.message))
-
-      ws.on('finish', () => {
-        console.log(`Successfully downloaded ${output}`)
-        resolve()
-      })
+      ws.on('finish', () => resolve(`output: ${output}`))
     })
+  }
+
+  _success(resolve, url, msg) {
+    logger.info('#successful')
+    logger.info(`url: ${url}`)
+    return resolve(msg)
+  }
+
+  _error(reject, url, msg) {
+    logger.error('#error')
+    logger.error(`url: ${url}`)
+    return reject(msg)
   }
 
   download(url) {
     return new Promise(async (resolve, reject) => {
+      const success = this._success.bind(this, resolve, url)
+      const error = this._error.bind(this, reject, url)
+
       const id = this.extract_id(url)
-      if (!id) return reject('An invalid URL was selected.')
+      if (!id) return error('An invalid URL was selected.')
 
       const data = await this.client.get('statuses/lookup', { id })
-      if (!data.length) return reject('I can\'t find any tweets that match the id.')
+      if (!data.length) return error('I can\'t find any tweets that match the id.')
 
       const video_url = await this.select_video(data[0].extended_entities.media[0])
-      if (!video_url) return reject('There is no video in the specified tweet.')
+      if (!video_url) return error('There is no video in the specified tweet.')
 
-      await this._download(video_url).catch(reject)
-
-      return resolve()
+      try {
+        const msg = await this._download(video_url)
+        return success(msg)
+      } catch (e) {
+        return error(e)
+      }
     })
   }
 }
