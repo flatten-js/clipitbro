@@ -50,7 +50,14 @@ class Clipitbro {
       type: 'select',
       name: 'answer',
       message: 'Select the video you want to download',
-      choices: Object.keys(choices)
+      choices: Object.keys(choices).sort((a, b) => {
+        const pixel = choice => {
+          const re = /(\d+)x(\d+)/
+          const [width, height] = choice.match(re).slice(1)
+          return width * height
+        }
+        return pixel(a) - pixel(b)
+      })
     })
 
     return choices[answer]
