@@ -63,7 +63,7 @@ class Clipitbro {
     return choices[answer]
   }
 
-  async _download(url) {
+  async _download(url, options) {
     const { form } = await prompt({
       type: 'form',
       name: 'form',
@@ -79,6 +79,7 @@ class Clipitbro {
       ]
     })
 
+    if (options.mkdir) fs.mkdirSync(form.dir, { recursive: true })
     const output = path.resolve(...Object.values(form))
 
     const res = await axios.get(url, { responseType: 'stream' })
@@ -102,7 +103,7 @@ class Clipitbro {
     return reject(msg)
   }
 
-  download(url) {
+  download(url, options) {
     return new Promise(async (resolve, reject) => {
       const success = this._success.bind(this, resolve, url)
       const error = this._error.bind(this, reject, url)
@@ -120,7 +121,7 @@ class Clipitbro {
       if (!video_url) return error('There is no video in the specified tweet.')
 
       try {
-        const msg = await this._download(video_url)
+        const msg = await this._download(video_url, options)
         return success(msg)
       } catch (e) {
         return error(e)

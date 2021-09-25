@@ -12,8 +12,9 @@ program.version(package.version)
 
 program
   .argument('<url>')
-  .action(url => {
-    clipitbro.download(url)
+  .option('-m, --mkdir', 'Automatically created when the directory specified in the output destination does not exist')
+  .action((url, options) => {
+    clipitbro.download(url, options)
     .then(msg => logger.info(msg))
     .catch(e => logger.error(e))
   })
