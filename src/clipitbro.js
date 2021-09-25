@@ -8,7 +8,8 @@ const logger = require('./logger.js')
 
 class Clipitbro {
   constructor(env) {
-    this.client = this._certification(env)
+    this._client = this._certification(env)
+    this._cache = JSON.parse(env.CACHE || false) && this._read_cache
   }
 
   _certification(env) {
@@ -18,6 +19,25 @@ class Clipitbro {
       access_token_key: env.TWITTER_API_TOKEN_KEY,
       access_token_secret: env.TWITTER_API_TOKEN_SECRET_KEY
     })
+  }
+
+  get _read_cache() {
+    const p = path.resolve(__dirname, '../.cache')
+    if (!fs.existsSync(p)) return {}
+
+    const cache = fs.readFileSync(p, 'utf8')
+    const matches = [...cache.matchAll(/(.+)=([^\r\n]+)/g)]
+
+    return matches.reduce((acc, cur) => {
+      const [key, value] = cur.slice(1)
+      return { ...acc, [key]: value }
+    }, {})
+  }
+
+  _write_cache(cache) {
+    const p = path.resolve(__dirname, '../.cache')
+    cache = Object.entries(cache).map(([k, v]) => `${k}=${v}`).join('\n')
+    fs.writeFileSync(p, cache)
   }
 
   extract_id(url) {
@@ -69,7 +89,11 @@ class Clipitbro {
       name: 'form',
       message: 'Enter the output destination information:',
       choices: [
-        { name: 'dir', message: 'dir' },
+        {
+          name: 'dir',
+          message: 'dir',
+          initial: this._cache?.dir
+        },
         {
           name: 'file',
           message: 'file',
@@ -78,6 +102,8 @@ class Clipitbro {
         }
       ]
     })
+
+    if (this._cache) this._write_cache({ dir: form.dir })
 
     if (options.mkdir) fs.mkdirSync(form.dir, { recursive: true })
     const output = path.resolve(...Object.values(form))
@@ -111,7 +137,7 @@ class Clipitbro {
       const id = this.extract_id(url)
       if (!id) return error('An invalid URL was selected.')
 
-      const data = await this.client.get('statuses/lookup', { id })
+      const data = await this._client.get('statuses/lookup', { id })
       if (!data.length) return error('I can\'t find any tweets that match the id.')
 
       const media = data[0].extended_entities?.media[0]

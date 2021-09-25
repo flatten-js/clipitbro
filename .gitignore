@@ -1,3 +1,4 @@
 .env
+.cache
 .activity.log
 node_modules/
